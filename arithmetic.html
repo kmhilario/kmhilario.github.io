@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Factorial, sum, and average of the first N natural numbers" name="description"/>
+<title>Sum, Average &amp; Factorial</title>
+<!-- apply saved dark theme immediately before rendering to prevent flash of light theme -->
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<!-- outer wrapper holding the top navigation bar and main workspace -->
+<div class="app-frame">
+<!-- header containing university logo, folder-style navigation tabs, and theme switcher -->
+
+<!-- main browser-window style workspace area -->
+<main class="workspace">
+<!-- decorative window control dots -->
+
+<div class="workspace-content">
+<!-- page title and subtitle header -->
+<header class="page-title">
+<h1>Arithmetic</h1>
+<p>Factorial | Sum | Average Calculator</p>
+</header>
+<p class="instruction">Calculate the factorial, sum, and average of the first N natural numbers.</p>
+<!-- two-column layout pairing the natural number input card with the output results list -->
+<div class="arithmetic-layout">
+<!-- left panel: integer n input and validation message -->
+<section class="panel arithmetic-input">
+<header class="panel-header">
+<strong>INPUT</strong>
+</header>
+<div class="panel-body">
+<h2>Enter N (Natural Numbers)</h2>
+<p>Enter N and select Calculate to see all three results.</p>
+<div class="number-field">
+<input aria-label="Natural number N" id="arithmetic-n-input" min="1" placeholder="Enter a value for N" step="1" type="number"/>
+<span>N</span>
+</div>
+<p class="input-help" id="arithmetic-help">
+                Use a positive whole number (1, 2, 3, …).
+              </p>
+<button class="primary-button" id="arithmetic-calc-btn" type="button">
+                Calculate
+              </button>
+<div class="how-it-works">
+<strong>HOW IT WORKS</strong>
+<p>Calculations use the numbers 1 through N.</p>
+</div>
+</div>
+</section>
+<!-- right panel: stacked rows displaying factorial, sum, and average -->
+<section class="panel arithmetic-output">
+<header class="panel-header">
+<strong>ARITHMETIC OUTPUT</strong>
+<span>RESULT</span>
+</header>
+<div class="panel-body">
+<div class="arithmetic-row">
+<span>
+<strong>Factorial</strong>
+<small>N! = 1 × 2 × … × N</small>
+</span>
+<b id="res-factorial">—</b>
+</div>
+<div class="arithmetic-row">
+<span>
+<strong>Sum</strong>
+<small>N × (N + 1) / 2</small>
+</span>
+<b id="res-sum">—</b>
+</div>
+<div class="arithmetic-row">
+<span>
+<strong>Average</strong>
+<small>(N + 1) / 2</small>
+</span>
+<b id="res-average">—</b>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+</div>
+<!-- theme management script that syncs dark/light mode across local storage and swaps icons -->
+
+<!-- arithmetic computation script demonstrating while, do-while, and for loops -->
+
+<script>
+    (function () {
+      const inputEl = document.getElementById("arithmetic-n-input");
+      const helpEl = document.getElementById("arithmetic-help");
+      const calcBtn = document.getElementById("arithmetic-calc-btn");
+      const resFactorial = document.getElementById("res-factorial");
+      const resSum = document.getElementById("res-sum");
+      const resAverage = document.getElementById("res-average");
+
+      // validates n (1 to 170 to avoid floating-point infinity) and computes factorial, sum, and average
+      function handleCalculate() {
+        const n = Number(inputEl.value);
+        if (!Number.isInteger(n) || n < 1 || n > 170) {
+          helpEl.textContent = "Enter a whole number from 1 to 170.";
+          helpEl.classList.add("error");
+          resFactorial.textContent = "—";
+          resSum.textContent = "—";
+          resAverage.textContent = "—";
+          return;
+        }
+
+        // compute factorial using a while loop
+        let factorial = 1;
+        let factor = 1;
+        while (factor <= n) {
+          factorial *= factor;
+          factor += 1;
+        }
+
+        // compute sum of first n natural numbers using a do-while loop
+        let sum = 0;
+        let addend = 1;
+        do {
+          sum += addend;
+          addend += 1;
+        } while (addend <= n);
+
+        // compute total and divide by n for the average using a for loop
+        let total = 0;
+        for (let number = 1; number <= n; number += 1) {
+          total += number;
+        }
+
+        const average = total / n;
+
+        // reset helper text and format computed values with thousand separators
+        helpEl.textContent = "Use a positive whole number (1, 2, 3, …).";
+        helpEl.classList.remove("error");
+        resFactorial.textContent = factorial.toLocaleString("en-US");
+        resSum.textContent = sum.toLocaleString("en-US");
+        resAverage.textContent = average.toLocaleString("en-US");
+      }
+
+      // run calculation on button click
+      calcBtn.addEventListener("click", handleCalculate);
+
+      // run calculation when pressing enter inside the input field
+      inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handleCalculate();
+        }
+      });
+    })();
+  </script></body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Philippine annual income tax calculator" name="description"/>
+<title>Income Tax Calculator</title>
+<!-- apply saved dark theme immediately before rendering to prevent flash of light theme -->
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<!-- outer wrapper holding the top navigation bar and main workspace -->
+<div class="app-frame">
+<!-- header containing university logo, folder-style navigation tabs, and theme switcher -->
+
+<!-- main browser-window style workspace area -->
+<main class="workspace">
+<!-- decorative window control dots -->
+
+<div class="workspace-content">
+<!-- page title and subtitle header -->
+<header class="page-title">
+<h1>Income Tax Calculator</h1>
+<p>Tax Table | Taxable Income</p>
+</header>
+<p class="instruction">Enter your taxable income to compute the income tax using the table below.</p>
+<!-- two-column layout pairing the reference tax bracket table with the input/output cards -->
+<div class="tax-layout">
+<!-- left panel: reference grid showing philippine income tax brackets and rates -->
+<section class="panel tax-table-panel">
+<header class="panel-header">
+<strong>INCOME TAX TABLE</strong>
+</header>
+<div class="panel-body">
+<div aria-label="Income tax brackets" class="tax-table" role="table">
+<div class="tax-table-heading" role="row">
+<strong>Amount of Net Taxable Income</strong>
+<strong>Basic Tax + Rate</strong>
+</div>
+<div class="tax-column-labels" role="row">
+<span>Over</span>
+<span>But Not Over</span>
+<span></span>
+</div>
+<div class="tax-row" role="row">
+<span>—</span>
+<span>₱250,000</span>
+<span>0%</span>
+</div>
+<div class="tax-row" role="row">
+<span>₱250,000</span>
+<span>₱400,000</span>
+<span>20% of the excess over ₱250,000</span>
+</div>
+<div class="tax-row" role="row">
+<span>₱400,000</span>
+<span>₱800,000</span>
+<span>₱30,000 + 25% of the excess over ₱400,000</span>
+</div>
+<div class="tax-row" role="row">
+<span>₱800,000</span>
+<span>₱2,000,000</span>
+<span>₱130,000 + 30% of the excess over ₱800,000</span>
+</div>
+<div class="tax-row" role="row">
+<span>₱2,000,000</span>
+<span>₱8,000,000</span>
+<span>₱490,000 + 32% of the excess over ₱2,000,000</span>
+</div>
+<div class="tax-row" role="row">
+<span>₱8,000,000</span>
+<span>—</span>
+<span>₱2,410,000 + 35% of the excess over ₱8,000,000</span>
+</div>
+</div>
+<p class="table-formula">Income Tax = Basic tax + Rate</p>
+</div>
+</section>
+<!-- right column: stacked income input card and computed tax output card -->
+<div class="tax-side">
+<section class="panel tax-input-card">
+<header class="panel-header">
+<strong>01 / ENTER YEARLY TAXABLE INCOME</strong>
+</header>
+<div class="panel-body">
+<!-- peso currency field for entering annual taxable income -->
+<div class="currency-field">
+<span>₱</span>
+<input aria-label="Taxable income" id="tax-income-input" min="0" placeholder="Enter taxable income" type="number"/>
+</div>
+<button class="primary-button" id="compute-tax-btn" type="button">
+                  Compute income tax
+                </button>
+</div>
+</section>
+<!-- output panel displaying formatted peso tax due -->
+<section class="panel tax-output-card">
+<header class="panel-header">
+<strong>INCOME TAX OUTPUT</strong>
+<span>RESULT</span>
+</header>
+<div class="panel-body">
+<h2>Income tax due</h2>
+<strong class="tax-result" id="tax-result">₱ —</strong>
+<p id="tax-summary">Enter taxable income to see your result.</p>
+<small>Calculated using the income tax table.</small>
+</div>
+</section>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- theme management script that syncs dark/light mode across local storage and swaps icons -->
+
+<!-- income tax calculation script implementing progressive tax brackets -->
+
+<script>
+    (function () {
+      // currency formatter configured for philippine peso with two decimal places
+      const money = new Intl.NumberFormat("en-PH", {
+        style: "currency",
+        currency: "PHP",
+        minimumFractionDigits: 2,
+      });
+
+      // computes annual tax due by matching taxable income against six progressive brackets
+      function calculateTax(income) {
+        if (income <= 250000) return 0;
+        if (income <= 400000) return (income - 250000) * 0.2;
+        if (income <= 800000) return 30000 + (income - 400000) * 0.25;
+        if (income <= 2000000) return 130000 + (income - 800000) * 0.3;
+        if (income <= 8000000) return 490000 + (income - 2000000) * 0.32;
+        return 2410000 + (income - 8000000) * 0.35;
+      }
+
+      const inputEl = document.getElementById("tax-income-input");
+      const computeBtn = document.getElementById("compute-tax-btn");
+      const resultEl = document.getElementById("tax-result");
+      const summaryEl = document.getElementById("tax-summary");
+
+      // sanitizes input value, invokes the tax calculation function, and updates the result display and summary text
+      function handleCompute() {
+        const val = Math.max(0, Number(inputEl.value) || 0);
+        inputEl.value = val === 0 && inputEl.value === "" ? "" : val;
+        const tax = calculateTax(val);
+        resultEl.textContent = money.format(tax);
+        summaryEl.textContent = `Tax due on ${money.format(val)} taxable income.`;
+      }
+
+      // block typing minus, plus, or scientific notation 'e', and trigger compute on enter
+      inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "-" || e.key === "+" || e.key.toLowerCase() === "e") {
+          e.preventDefault();
+        } else if (e.key === "Enter") {
+          e.preventDefault();
+          handleCompute();
+        }
+      });
+
+      // strip negative signs or clamp to 0 if pasted or scrolled
+      inputEl.addEventListener("input", () => {
+        if (inputEl.value.includes("-")) {
+          inputEl.value = inputEl.value.replace(/-/g, "");
+        }
+        if (Number(inputEl.value) < 0) {
+          inputEl.value = "0";
+        }
+      });
+
+      // run tax computation when clicking the compute button
+      computeBtn.addEventListener("click", handleCompute);
+    })();
+  </script></body>
+</html>

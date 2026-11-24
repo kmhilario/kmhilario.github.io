@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Temperature and length unit conversion calculator" name="description"/>
+<title>Unit Conversion</title>
+<!-- apply saved dark theme immediately before rendering to prevent flash of light theme -->
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<!-- outer wrapper holding the top navigation bar and main workspace -->
+<div class="app-frame">
+<!-- header containing university logo, folder-style navigation tabs, and theme switcher -->
+
+<!-- main browser-window style workspace area -->
+<main class="workspace">
+<!-- decorative window control dots -->
+
+<div class="workspace-content">
+<!-- page title and subtitle header -->
+<header class="page-title">
+<h1>Unit Conversion</h1>
+<p>Metric to Imperial | Imperial to Metric Converter</p>
+</header>
+<p class="instruction">Select a unit, enter a value, and see the conversion.</p>
+<!-- two-column grid separating unit selection controls from conversion result display -->
+<div class="conversion-layout">
+<!-- left panel: unit selector buttons and numeric input field -->
+<section class="panel conversion-controls">
+<header class="panel-header">
+<strong>01 / CHOOSE YOUR UNIT</strong>
+</header>
+<div class="panel-body">
+<h2>What would you like to convert?</h2>
+<div class="unit-column-labels">
+<span>Metric</span>
+<span>Imperial</span>
+</div>
+<!-- interactive buttons to select source unit -->
+<div class="unit-options">
+<button class="unit-option selected" data-unit="celsius" type="button">
+<span>Celsius</span>
+<strong>°C</strong>
+</button>
+<button class="unit-option" data-unit="fahrenheit" type="button">
+<span>Fahrenheit</span>
+<strong>°F</strong>
+</button>
+<button class="unit-option" data-unit="meters" type="button">
+<span>Meters</span>
+<strong>m</strong>
+</button>
+<button class="unit-option" data-unit="feet" type="button">
+<span>Feet</span>
+<strong>ft</strong>
+</button>
+</div>
+<label class="section-label" for="conversion-value">
+                02  /  ENTER A VALUE
+              </label>
+<!-- input box with dynamic unit symbol badge -->
+<div class="number-field">
+<input aria-label="Value in °C" id="conversion-value" type="number" value="25"/>
+<span id="input-unit-badge">°C</span>
+</div>
+<div class="conversion-action">
+<p id="converting-label">Converting Celsius to Fahrenheit</p>
+<button class="primary-button" id="convert-btn" type="button">
+                  Convert
+                </button>
+</div>
+</div>
+</section>
+<!-- right panel: large converted output value and mathematical formula breakdown -->
+<section class="panel conversion-output">
+<header class="panel-header">
+<strong>CONVERSION OUTPUT</strong>
+<span>RESULT</span>
+</header>
+<div class="panel-body">
+<h2 id="output-title">Celsius to Fahrenheit</h2>
+<p class="equals-copy" id="equals-copy">25 °C equals</p>
+<div class="large-result">
+<strong id="output-number">77</strong>
+<span id="output-unit">°F</span>
+</div>
+<p class="result-name" id="output-name">Fahrenheit</p>
+<div class="formula">
+<span>THE FORMULA</span>
+<strong id="formula-text">(25 × 9/5) + 32 = 77 °F</strong>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+</div>
+<!-- theme management script that syncs dark/light mode across local storage and swaps icons -->
+
+<!-- unit conversion logic for temperature (celsius/fahrenheit) and length (meters/feet) -->
+
+<script>
+    (function () {
+      // lookup table defining conversion formulas, labels, units, and negative-value rules
+      const conversions = {
+        celsius: {
+          label: "Celsius to Fahrenheit",
+          inputUnit: "°C",
+          outputUnit: "°F",
+          outputName: "Fahrenheit",
+          allowNegative: true,
+          convert: (v) => v * (9 / 5) + 32,
+          formula: (inp, out) => `(${inp} × 9/5) + 32 = ${out} °F`,
+        },
+        fahrenheit: {
+          label: "Fahrenheit to Celsius",
+          inputUnit: "°F",
+          outputUnit: "°C",
+          outputName: "Celsius",
+          allowNegative: true,
+          convert: (v) => (v - 32) * (5 / 9),
+          formula: (inp, out) => `(${inp} − 32) × 5/9 = ${out} °C`,
+        },
+        meters: {
+          label: "Meters to Feet",
+          inputUnit: "m",
+          outputUnit: "ft",
+          outputName: "Feet",
+          allowNegative: false,
+          convert: (v) => v * 3.28084,
+          formula: (inp, out) => `${inp} × 3.28084 = ${out} ft`,
+        },
+        feet: {
+          label: "Feet to Meters",
+          inputUnit: "ft",
+          outputUnit: "m",
+          outputName: "Meters",
+          allowNegative: false,
+          convert: (v) => v / 3.28084,
+          formula: (inp, out) => `${inp} ÷ 3.28084 = ${out} m`,
+        },
+      };
+
+      let selected = "celsius";
+      const unitButtons = document.querySelectorAll(".unit-option");
+      const inputEl = document.getElementById("conversion-value");
+      const inputUnitBadge = document.getElementById("input-unit-badge");
+      const convertingLabel = document.getElementById("converting-label");
+      const convertBtn = document.getElementById("convert-btn");
+
+      const outputTitle = document.getElementById("output-title");
+      const equalsCopy = document.getElementById("equals-copy");
+      const outputNumber = document.getElementById("output-number");
+      const outputUnit = document.getElementById("output-unit");
+      const outputName = document.getElementById("output-name");
+      const formulaText = document.getElementById("formula-text");
+
+      // formats numbers cleanly by keeping whole integers intact and trimming trailing decimals up to 2 places
+      function cleanNumber(value) {
+        return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, "");
+      }
+
+      // resets negative input values to 0 when converting length units that cannot be negative
+      function enforceNonNegative() {
+        const conv = conversions[selected];
+        if (!conv.allowNegative && inputEl.value !== "" && Number(inputEl.value) < 0) {
+          inputEl.value = "0";
+        }
+      }
+
+      // validates the user input, computes the converted result, and updates all output panel text
+      function runConversion() {
+        enforceNonNegative();
+        const rawInput = inputEl.value || "0";
+        const numericInput = Number(rawInput);
+        const conv = conversions[selected];
+        const safeInput = Number.isFinite(numericInput)
+          ? conv.allowNegative
+            ? numericInput
+            : Math.max(0, numericInput)
+          : 0;
+        const output = cleanNumber(conv.convert(safeInput));
+
+        outputTitle.textContent = conv.label;
+        equalsCopy.textContent = `${safeInput} ${conv.inputUnit} equals`;
+        outputNumber.textContent = output;
+        outputUnit.textContent = conv.outputUnit;
+        outputName.textContent = conv.outputName;
+        formulaText.textContent = conv.formula(safeInput, output);
+      }
+
+      // blocks minus key on length units and triggers conversion when pressing enter
+      inputEl.addEventListener("keydown", (e) => {
+        if (!conversions[selected].allowNegative && e.key === "-") {
+          e.preventDefault();
+        }
+        if (e.key === "Enter") {
+          e.preventDefault();
+          runConversion();
+        }
+      });
+
+      // clamps negative pasted or scrolled numbers on length units
+      inputEl.addEventListener("input", enforceNonNegative);
+
+      // updates active button styling, input constraints, and labels when a unit button is clicked
+      unitButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          selected = btn.dataset.unit;
+          unitButtons.forEach((b) => b.classList.toggle("selected", b === btn));
+          const conv = conversions[selected];
+
+          if (conv.allowNegative) {
+            inputEl.removeAttribute("min");
+          } else {
+            inputEl.setAttribute("min", "0");
+            enforceNonNegative();
+          }
+
+          inputEl.setAttribute("aria-label", `Value in ${conv.inputUnit}`);
+          inputUnitBadge.textContent = conv.inputUnit;
+          convertingLabel.textContent = `Converting ${conv.label}`;
+        });
+      });
+
+      // triggers conversion when clicking the convert button
+      convertBtn.addEventListener("click", runConversion);
+    })();
+  </script></body>
+</html>

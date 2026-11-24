@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="Simple employee payroll calculator" name="description"/>
+<title>Payroll Program</title>
+<!-- apply saved dark theme immediately before rendering to prevent flash of light theme -->
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<!-- outer wrapper holding the top navigation bar and main workspace -->
+<div class="app-frame">
+<!-- header containing university logo, folder-style navigation tabs, and theme switcher -->
+
+<!-- main browser-window style workspace area -->
+<main class="workspace">
+<!-- decorative window control dots -->
+
+<div class="workspace-content">
+<!-- page title and subtitle header -->
+<header class="page-title">
+<h1>Simple Payroll</h1>
+<p>Employee Details | Gross Pay | Net Pay</p>
+</header>
+<p class="instruction">Enter employee details to add a payroll record, or delete a record by its line number.
+        </p>
+<!-- two-column layout pairing the employee entry form with the dynamic payroll table -->
+<div class="payroll-layout">
+<!-- left panel: form for inputting employee name, days worked, daily rate, and deductions -->
+<section class="panel employee-card">
+<header class="panel-header">
+<strong>01 / EMPLOYEE DETAILS</strong>
+</header>
+<div class="panel-body">
+<form id="payroll-form">
+<label>
+<span>Employee Name</span>
+<input id="emp-name" pattern="[A-Za-z\s]+" placeholder="Enter employee name" required="" title="Letters and spaces only" type="text"/>
+</label>
+<div class="two-fields">
+<label>
+<span>Days Worked</span>
+<input id="emp-days" min="0" placeholder="e.g. 22" required="" type="number"/>
+</label>
+<label>
+<span>Daily Rate</span>
+<input id="emp-rate" min="0" placeholder="₱ 0" required="" type="number"/>
+</label>
+</div>
+<label>
+<span>Deduction Amount</span>
+<input id="emp-deduction" min="0" placeholder="₱ 0" required="" type="number"/>
+</label>
+<button class="primary-button" type="submit">
+                  Add to payroll
+                </button>
+</form>
+<div class="how-it-works compact">
+<strong>HOW IT WORKS</strong>
+<p>Add an employee to calculate gross and net pay.</p>
+</div>
+</div>
+</section>
+<!-- right panel: payroll table, empty state placeholder, formulas, and record deletion controls -->
+<section class="panel payroll-list">
+<header class="panel-header">
+<strong>PAYROLL LIST</strong>
+<span id="employee-count-badge">0 EMPLOYEES</span>
+</header>
+<div class="panel-body">
+<div class="payroll-table-wrap">
+<table>
+<thead>
+<tr>
+<th>No.</th>
+<th>Employee Name</th>
+<th>Days Worked</th>
+<th>Daily Rate</th>
+<th>Gross Pay</th>
+<th>Deduction Amount</th>
+<th>Net Pay</th>
+</tr>
+</thead>
+<tbody id="payroll-tbody"></tbody>
+</table>
+<!-- placeholder message shown when no employee records exist -->
+<div class="empty-payroll" id="empty-payroll">
+<strong>No payroll records yet</strong>
+<p>Enter employee details and select Add to payroll to begin.</p>
+</div>
+</div>
+<p class="line-note">No. = Payroll list line number</p>
+<div class="payroll-formulas">
+<strong>Gross Pay = Days Worked × Daily Rate</strong>
+<strong>Net Pay = Gross Pay − Deduction Amount</strong>
+</div>
+<!-- controls to remove a payroll entry by its 1-based row number -->
+<div class="delete-area">
+<div>
+<strong>DELETE A RECORD</strong>
+<p>Enter the line number to delete.</p>
+</div>
+<label>
+<span>Line Number</span>
+<input id="delete-line-input" min="1" placeholder="e.g. 1" type="number"/>
+</label>
+<button id="delete-record-btn" type="button">
+                  Delete record
+                </button>
+</div>
+<p class="table-update-note">
+                The payroll table updates after a record is added or deleted.
+              </p>
+</div>
+</section>
+</div>
+</div>
+</main>
+</div>
+<!-- theme management script that syncs dark/light mode across local storage and swaps icons -->
+
+<!-- payroll state management script for adding, validating, rendering, and deleting records -->
+
+<script>
+    (function () {
+      // currency formatter configured for philippine peso with two decimal places
+      const money = new Intl.NumberFormat("en-PH", {
+        style: "currency",
+        currency: "PHP",
+        minimumFractionDigits: 2,
+      });
+
+      // in-memory array storing employee payroll objects
+      let records = [];
+
+      const form = document.getElementById("payroll-form");
+      const nameInput = document.getElementById("emp-name");
+      const daysInput = document.getElementById("emp-days");
+      const rateInput = document.getElementById("emp-rate");
+      const deductionInput = document.getElementById("emp-deduction");
+      const tbody = document.getElementById("payroll-tbody");
+      const emptyState = document.getElementById("empty-payroll");
+      const countBadge = document.getElementById("employee-count-badge");
+      const deleteInput = document.getElementById("delete-line-input");
+      const deleteBtn = document.getElementById("delete-record-btn");
+
+      // allow only letters (a-z, a-z) and spaces in employee name
+      nameInput.addEventListener("input", () => {
+        nameInput.value = nameInput.value.replace(/[^a-zA-Z\s]/g, "");
+      });
+
+      // clears any custom browser validation message on the delete input
+      function clearDeleteError() {
+        deleteInput.setCustomValidity("");
+      }
+
+      // displays a native validation tooltip and focuses the delete input when an error occurs
+      function showDeleteError(message) {
+        deleteInput.setCustomValidity(message);
+        deleteInput.reportValidity();
+        deleteInput.focus();
+      }
+
+      deleteInput.addEventListener("input", clearDeleteError);
+
+      // sanitizes special html characters to prevent cross-site scripting when rendering employee names
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      // rebuilds the payroll table rows, updates the employee count badge, and toggles the empty state
+      function render() {
+        countBadge.textContent = `${records.length} ${records.length === 1 ? "EMPLOYEE" : "EMPLOYEES"}`;
+        emptyState.style.display = records.length === 0 ? "block" : "none";
+        tbody.innerHTML = records
+          .map(
+            (rec, idx) => `
+              <tr>
+                <td>${idx + 1}</td>
+                <td>${escapeHtml(rec.name)}</td>
+                <td>${rec.days}</td>
+                <td>${money.format(rec.rate)}</td>
+                <td>${money.format(rec.gross)}</td>
+                <td>${money.format(rec.deduction)}</td>
+                <td>${money.format(rec.net)}</td>
+              </tr>`
+          )
+          .join("");
+      }
+
+      // validates form inputs, calculates gross and net pay, appends a new record, and clears fields
+      function addRecord() {
+        const cleanName = nameInput.value.replace(/[^a-zA-Z\s]/g, "").trim();
+
+        // stop submission if any of the four inputs are empty
+        if (
+          !cleanName ||
+          daysInput.value.trim() === "" ||
+          rateInput.value.trim() === "" ||
+          deductionInput.value.trim() === ""
+        ) {
+          if (!cleanName) {
+            nameInput.value = "";
+            nameInput.focus();
+          }
+          form.reportValidity();
+          return;
+        }
+
+        const dayCount = Math.max(0, Number(daysInput.value));
+        const dailyRate = Math.max(0, Number(rateInput.value));
+        const deductionAmount = Math.max(0, Number(deductionInput.value));
+        const gross = dayCount * dailyRate;
+
+        records.push({
+          name: cleanName,
+          days: dayCount,
+          rate: dailyRate,
+          gross: gross,
+          deduction: deductionAmount,
+          net: gross - deductionAmount,
+        });
+
+        nameInput.value = "";
+        daysInput.value = "";
+        rateInput.value = "";
+        deductionInput.value = "";
+        nameInput.focus();
+        clearDeleteError();
+        render();
+      }
+
+      // validates the entered line number and removes the matching record from the payroll array
+      function deleteRecord() {
+        const rawValue = deleteInput.value.trim();
+
+        if (records.length === 0) {
+          showDeleteError("There are no payroll records to delete.");
+          return;
+        }
+
+        if (rawValue === "") {
+          showDeleteError("Please enter a line number to delete.");
+          return;
+        }
+
+        const lineNumber = Number(rawValue);
+        const index = lineNumber - 1;
+
+        if (!Number.isInteger(lineNumber) || index < 0 || index >= records.length) {
+          showDeleteError(
+            `Line number ${rawValue} was not found. Enter a number from 1 to ${records.length}.`
+          );
+          return;
+        }
+
+        records.splice(index, 1);
+        deleteInput.value = "";
+        clearDeleteError();
+        render();
+      }
+
+      // handle form submit event
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        addRecord();
+      });
+
+      // submit employee record on enter key inside any employee detail input
+      [nameInput, daysInput, rateInput, deductionInput].forEach((input) => {
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            addRecord();
+          }
+        });
+      });
+
+      // delete record on click or enter key inside the line number input
+      deleteBtn.addEventListener("click", deleteRecord);
+      deleteInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          deleteRecord();
+        }
+      });
+    })();
+  </script></body>
+</html>
